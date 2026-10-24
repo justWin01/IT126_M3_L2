@@ -1,43 +1,93 @@
 import 'package:flutter/material.dart';
+import 'data/task_repository.dart';
+import 'screens/memory_activity_screen.dart';
+import 'screens/task_manager_screen.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const TaskLessonApp());
+}
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-  // This widget is the root of your application.
+class TaskLessonApp extends StatelessWidget {
+  const TaskLessonApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Application name
-      title: 'Flutter Hello World',
-      // Application theme data, you can set the colors for the application as
-      // you want
+      title: 'IT 126 Local Task Manager',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // useMaterial3: false,
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
+        useMaterial3: true,
       ),
-      // A widget which will be started on application startup
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const HomeScreen(),
     );
   }
 }
 
-class MyHomePage extends StatelessWidget {
-  final String title;
-  const MyHomePage({super.key, required this.title});  
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late final Future<TaskRepository> _repositoryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _repositoryFuture = TaskRepository.create();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        // The title text which will be shown on the action bar
-        title: Text(title),
-      ),
-      body: Center(
-        child: Text(
-          'Hello, World!',
-        ),
-      ),
+    return FutureBuilder<TaskRepository>(
+      future: _repositoryFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('IT 126 Module 3 Lesson 2')),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'The local database could not be opened.\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Local Task Manager'),
+              bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.memory), text: 'Activity'),
+                  Tab(icon: Icon(Icons.storage), text: 'SQLite App'),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                const MemoryActivityScreen(),
+                TaskManagerScreen(repository: snapshot.data!),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
